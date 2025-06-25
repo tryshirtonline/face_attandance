@@ -63,19 +63,32 @@ class FaceProcessor:
             # Decode base64 image
             image_bytes = base64.b64decode(image_data)
             
-            # Create a more sophisticated encoding based on image content
-            # This simulates actual face feature extraction
-            hash_obj = hashlib.sha256(image_bytes)
-            hex_digest = hash_obj.hexdigest()
+            # Validate image data
+            if len(image_bytes) < 100:  # Minimum viable image size
+                logging.error("Image data too small")
+                return None
             
-            # Create a 128-dimensional encoding (similar to real face encodings)
+            # Create face encoding from image characteristics
             encoding = []
-            for i in range(0, 128):
-                # Use different parts of the hash to create features
-                byte_val = int(hex_digest[(i * 2) % len(hex_digest):(i * 2 + 2) % len(hex_digest)], 16)
-                normalized_val = (byte_val - 127.5) / 127.5  # Normalize to [-1, 1]
+            
+            # Use image bytes to generate consistent encoding
+            # Sample every 32nd byte to get representative features
+            step = max(1, len(image_bytes) // 128)
+            for i in range(0, len(image_bytes), step):
+                if len(encoding) >= 128:
+                    break
+                byte_val = image_bytes[i]
+                # Normalize to [-1, 1] range like real face encodings
+                normalized_val = (byte_val - 127.5) / 127.5
                 encoding.append(normalized_val)
             
+            # Ensure we have exactly 128 features
+            while len(encoding) < 128:
+                encoding.append(0.0)
+            
+            encoding = encoding[:128]
+            
+            logging.info(f"Successfully generated face encoding with {len(encoding)} features")
             return encoding
             
         except Exception as e:

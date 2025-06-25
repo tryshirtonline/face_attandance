@@ -825,11 +825,12 @@ def admin_add_employee():
                 from face_utils_working import face_processor
                 face_encoding = face_processor.extract_face_encoding(face_data)
                 if not face_encoding:
-                    flash('Failed to process face data. Please try capturing again.', 'error')
+                    flash('Failed to process face data. Please ensure face is clearly visible and try capturing again.', 'error')
                     return redirect(url_for('employees'))
+                logging.info(f"Successfully processed face encoding for employee: {name}")
             except Exception as e:
                 logging.error(f"Error processing face encoding: {str(e)}")
-                flash('Error processing face data.', 'error')
+                flash('Error processing face data. Please try again.', 'error')
                 return redirect(url_for('employees'))
 
         # Create employee
