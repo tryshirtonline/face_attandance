@@ -106,7 +106,7 @@
                                                     </a>
                                                 {% elif current_user.role == 'superuser' %}
                                                     <button type="button" class="btn btn-outline-warning btn-sm"
-                                                            onclick="editEmployee({{ employee.id }}, '{{ employee.employee_number }}', '{{ employee.name }}', '{{ employee.job_title_id if employee.job_title_id else '' }}', '{{ (employee.address|replace('\n', '\\n')|replace('\'', '\\'')) if employee.address else '' }}', '{{ employee.contact_number }}', '{{ employee.email or '' }}', {{ employee.supervisor_id or 'null' }})"
+                                                            onclick="editEmployee({{ employee.id }}, '{{ employee.employee_number }}', '{{ employee.name }}', '{{ employee.job_title_id or '' }}', '{{ employee.address|replace('\n', ' ')|replace('\'', '') if employee.address else '' }}', '{{ employee.contact_number }}', '{{ employee.email or '' }}', {{ employee.supervisor_id or 'null' }})"
                                                             data-bs-toggle="modal" data-bs-target="#editEmployeeModal">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
