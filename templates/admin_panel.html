@@ -145,7 +145,7 @@
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                             <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                    onclick="editEmployee({{ employee.id }}, '{{ employee.employee_number }}', '{{ employee.name }}', '{{ employee.job_title_id if employee.job_title_id else '' }}', '{{ employee.address|replace('\n', '\\n')|replace('\'', '\\'') }}', '{{ employee.contact_number }}', '{{ employee.email or '' }}', {{ employee.supervisor_id or 'null' }})"
+                                                    onclick="editEmployee({{ employee.id }}, '{{ employee.employee_number }}', '{{ employee.name }}', '{{ employee.job_title_id if employee.job_title_id else '' }}', '{{ (employee.address or '')|replace('\n', '\\n')|replace('\'', '\\'') }}', '{{ employee.contact_number or '' }}', '{{ employee.email or '' }}', {{ employee.supervisor_id or 'null' }})"
                                                     data-bs-toggle="modal" data-bs-target="#editEmployeeModal">
                                                 <i class="fas fa-edit"></i>
                                             </button>
