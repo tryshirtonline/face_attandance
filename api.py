@@ -89,6 +89,32 @@ def get_daily_attendance():
             'error': str(e)
         }), 500
 
+@api_bp.route('/job_titles/<int:category_id>', methods=['GET'])
+def get_job_titles_by_category(category_id):
+    """Get job titles for a specific category"""
+    try:
+        from models import JobTitle
+        job_titles = JobTitle.query.filter_by(category_id=category_id).order_by(JobTitle.name).all()
+        
+        titles_list = []
+        for title in job_titles:
+            titles_list.append({
+                'id': title.id,
+                'name': title.name
+            })
+        
+        return jsonify({
+            'success': True,
+            'job_titles': titles_list
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting job titles: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @api_bp.route('/attendance/range', methods=['GET'])
 def get_attendance_range():
     """Get attendance records for a date range"""
