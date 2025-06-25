@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from app import app, db
 from auth import auth_bp, role_required, superuser_required
 from api import api_bp
-from api_job_titles import api_job_titles_bp
+
 from models import (User, CompanyProfile, JobCategory, JobTitle, Supervisor, 
                    Employee, Attendance, supervisor_categories)
 from face_utils_working import face_processor
@@ -21,7 +21,7 @@ import io
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(api_bp)
-app.register_blueprint(api_job_titles_bp)
+
 
 # Allowed file extensions for logo upload
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
