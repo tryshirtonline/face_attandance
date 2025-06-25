@@ -1,0 +1,198 @@
+✅ OVERVIEW: What You're Building
+Role	Access
+👤 Superuser (Main Owner)	Full control: add categories, assign supervisors, view reports, control branding
+🧑‍🏭 Supervisor	Can register employees under allowed categories and mark their attendance via face
+👨‍💼 Employee	No login; their attendance is recorded via face only
+
+🔧 TECHNOLOGY STACK
+Part	Tool
+Backend	Django (Python)
+Face Matching	face_recognition, OpenCV, MediaPipe
+Anti-Spoof	Eye blink detection with MediaPipe
+Geo Location	Browser GPS (HTML5) + JavaScript
+Reporting	pandas, reportlab / weasyprint, csv
+Sync API	Django REST Framework
+Frontend	Bootstrap + jQuery or HTMX
+.NET Sync	Daily API call (cron job / celery beat)
+
+📁 1. DATABASE STRUCTURE
+🔹 Category & Job
+python
+Copy
+Edit
+class JobCategory(models.Model):
+    name = models.CharField(max_length=100)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)  # Superuser
+
+class JobTitle(models.Model):
+    name = models.CharField(max_length=100)
+    category = models.ForeignKey(JobCategory, on_delete=models.CASCADE)
+🔹 Supervisor & Employees
+python
+Copy
+Edit
+class Supervisor(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=100)
+
+class Employee(models.Model):
+    employee_number = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    job_title = models.ForeignKey(JobTitle, on_delete=models.SET_NULL, null=True)
+    address = models.TextField()
+    contact_number = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    supervisor = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True)
+    face_encoding = models.BinaryField()  # store only encoding
+🔹 Attendance
+python
+Copy
+Edit
+class Attendance(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    time = models.TimeField(auto_now_add=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    marked_by = models.ForeignKey(Supervisor, on_delete=models.SET_NULL, null=True)
+🔄 2. SYSTEM FLOW
+🔸 Employee Registration Flow (By Supervisor):
+Supervisor selects job category & title.
+
+Fills employee number, name, contact, etc.
+
+Captures face once → face encoding stored.
+
+Assigned under that supervisor.
+
+🔸 Attendance Marking Flow:
+Supervisor selects category → sees their assigned employees.
+
+Face camera opens → live face compared with encoding.
+
+Only on blink detection + face match, attendance is recorded.
+
+Latitude & longitude auto-recorded (using JS navigator.geolocation).
+
+No image is stored, only face encoding.
+
+🧠 3. Anti-Spoofing with Blink Detection
+🛠 How:
+Use MediaPipe FaceMesh or dlib landmarks
+
+Monitor eye aspect ratio (EAR)
+
+Mark blink if eye closes and reopens quickly
+
+If no blink in 5s → block spoof attempt
+
+✅ Result: No photo or screen image can fake attendance.
+
+📊 4. Reporting System (CSV/PDF)
+Features:
+Date-wise filter (range, weekly, monthly)
+
+Filters by:
+
+Supervisor
+
+Job Category
+
+Job Title
+
+Export to:
+
+CSV → using pandas.to_csv()
+
+PDF → using weasyprint or reportlab
+
+Superuser can access reports of all supervisors, supervisors can only see their own employees.
+
+🌐 5. .NET API Integration
+API Endpoints Django Will Provide:
+GET /api/employees/ → List of employees
+
+GET /api/attendance/daily/ → Attendance logs of the day
+
+POST /api/sync-to-dotnet/ → .NET system can fetch or receive attendance
+
+✅ Use django-rest-framework to expose endpoints
+✅ Use requests.post() to send JSON data daily at 11PM (via cron job or Celery)
+
+📍 6. Geo Location Auto-Capture
+Use JS in template:
+
+html
+Copy
+Edit
+<script>
+navigator.geolocation.getCurrentPosition(function(pos) {
+    document.getElementById("lat").value = pos.coords.latitude;
+    document.getElementById("lon").value = pos.coords.longitude;
+});
+</script>
+Then pass that to Django before face capture.
+
+✅ You’ll store only coordinates. No map or GPS image needed.
+
+🧾 7. Superuser Company Panel
+Admin Settings Model:
+python
+Copy
+Edit
+class CompanyProfile(models.Model):
+    name = models.CharField(max_length=200)
+    logo = models.ImageField(upload_to='company/')
+    about = models.TextField(blank=True)
+Superuser can:
+
+Update company name, logo
+
+Control who can see which employees
+
+Assign job categories to supervisors
+
+🗂 8. File/Server Optimization
+Only store one-time face encodings
+
+No face images stored
+
+Attendance entries are lightweight
+
+All reports are generated only when requested
+
+✅ This makes the server light, fast, and privacy-compliant.
+
+🔁 DAILY ATTENDANCE SYNC PLAN
+At 10 PM each day:
+
+Use cron or Celery to send today’s attendance to .NET via HTTP POST
+
+You can format data as:
+
+json
+Copy
+Edit
+[
+  {
+    "employee_id": "EMP123",
+    "name": "Ravi Kumar",
+    "date": "2025-06-24",
+    "time": "09:02 AM",
+    "latitude": 26.8757,
+    "longitude": 80.9112
+  },
+  ...
+]
+✅ This can be fetched by .NET server or Django can push it.
+
+✅ FINAL MODULES TO BUILD
+Module	Status
+Supervisor Panel	✅
+Employee Registration	✅
+Category/Job Mgmt	✅
+Attendance Camera + Anti-Spoof	✅
+Geo-Location Capture	✅
+Export Reports	✅
+.NET Sync APIs	✅
+Admin Branding Panel	✅

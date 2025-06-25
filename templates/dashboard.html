@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Employee Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            <small class="text-muted ms-2">Welcome, {{ current_user.full_name }}!</small>
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    {% if user_role == 'superuser' %}
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_employees }}</h4>
+                            <p class="mb-0">Total Employees</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_supervisors }}</h4>
+                            <p class="mb-0">Supervisors</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-user-tie fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ total_categories }}</h4>
+                            <p class="mb-0">Categories</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-list fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ today_attendance }}</h4>
+                            <p class="mb-0">Today's Attendance</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-md-4 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ my_employees }}</h4>
+                            <p class="mb-0">My Employees</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ today_attendance }}</h4>
+                            <p class="mb-0">Today's Attendance</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-check fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <a href="{{ url_for('mark_attendance') }}" class="text-white text-decoration-none">
+                        <i class="fas fa-camera fa-2x mb-2"></i>
+                        <p class="mb-0">Mark Attendance</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% if user_role == 'superuser' %}
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('categories') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-list me-2"></i>Manage Categories
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-cog me-2"></i>Admin Panel
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('employees') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-users me-2"></i>View Employees
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('reports') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-chart-bar me-2"></i>Generate Reports
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="col-md-3 mb-2">
+                            <a href="/employees/register" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-user-plus me-2"></i>Register Employee
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('mark_attendance') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-camera me-2"></i>Mark Attendance
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('employees') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-users me-2"></i>My Employees
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('reports') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-chart-bar me-2"></i>My Reports
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Attendance -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>Recent Attendance
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_attendance %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Employee</th>
+                                    <th>Job Title</th>
+                                    {% if user_role == 'superuser' %}
+                                        <th>Supervisor</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for attendance in recent_attendance %}
+                                    <tr>
+                                        <td>{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ attendance.time.strftime('%H:%M') }}</td>
+                                        <td>
+                                            <strong>{{ attendance.employee.name }}</strong><br>
+                                            <small class="text-muted">{{ attendance.employee.employee_number }}</small>
+                                        </td>
+                                        <td>{{ attendance.employee.job_title.name if attendance.employee.job_title else 'N/A' }}</td>
+                                        {% if user_role == 'superuser' %}
+                                            <td>{{ attendance.marked_by_supervisor.full_name if attendance.marked_by_supervisor else 'N/A' }}</td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent attendance records found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

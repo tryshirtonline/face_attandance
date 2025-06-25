@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - Employee Attendance System{% endblock %}
+
+{% block extra_head %}
+<style>
+    #video-container {
+        position: relative;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    #video {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 2px solid var(--bs-border-color);
+    }
+
+    #canvas {
+        display: none;
+    }
+
+    .face-status {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .blink-indicator {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        background: rgba(255,193,7,0.9);
+        color: black;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        text-align: center;
+        display: none;
+    }
+
+    .attendance-btn {
+        margin-top: 15px;
+    }
+
+    .employee-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .employee-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .employee-card.selected {
+        border: 2px solid var(--bs-primary);
+        background-color: var(--bs-primary-bg-subtle);
+    }
+
+    .location-info {
+        font-size: 12px;
+        color: var(--bs-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-camera me-2"></i>Mark Attendance
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Select Employee</h5>
+            </div>
+            <div class="card-body">
+                {% if employees %}
+                    <div class="row">
+                        {% for employee in employees %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card employee-card" data-employee-id="{{ employee.id }}" data-employee-name="{{ employee.name }}">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-user-circle fa-3x text-primary mb-2"></i>
+                                        <h6 class="card-title mb-1">{{ employee.name }}</h6>
+                                        <p class="card-text text-muted mb-1">{{ employee.employee_number }}</p>
+                                        <small class="text-muted">{{ employee.job_title.name if employee.job_title else 'No Title' }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No employees assigned to you.</p>
+                        <a href="{{ url_for('register_employee') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-2"></i>Register First Employee
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Face Recognition</h5>
+            </div>
+            <div class="card-body">
+                <div id="video-container">
+                    <video id="video" autoplay muted></video>
+                    <div class="face-status" id="faceStatus">Select an employee first</div>
+                    <div class="blink-indicator" id="blinkIndicator">Please blink to confirm you're real</div>
+                </div>
+
+                <canvas id="canvas"></canvas>
+
+                <div class="text-center attendance-btn">
+                    <button type="button" class="btn btn-success btn-lg" id="markAttendanceBtn" disabled>
+                        <i class="fas fa-check me-2"></i>Mark Attendance
+                    </button>
+                </div>
+
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>Anti-Spoofing Protection Active:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Face Recognition:</strong> Your face must match the registered employee</li>
+                            <li><strong>Liveness Detection:</strong> Please blink naturally during capture</li>
+                            <li><strong>Location Tracking:</strong> GPS coordinates will be recorded</li>
+                            <li><strong>Security:</strong> Photos, screens, and masks are not allowed</li>
+                            <li><strong>Privacy:</strong> Only face patterns are stored, not images</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="locationInfo" class="location-info mt-2">
+                    <i class="fas fa-map-marker-alt me-1"></i>Getting location...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Result Modal -->
+<div class="modal fade" id="attendanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attendanceModalTitle">Attendance Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="attendanceModalBody">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/geolocation.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let selectedEmployeeId = null;
+    let selectedEmployeeName = null;
+    let currentLatitude = null;
+    let currentLongitude = null;
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let faceStatus = document.getElementById('faceStatus');
+    let blinkIndicator = document.getElementById('blinkIndicator');
+    let markAttendanceBtn = document.getElementById('markAttendanceBtn');
+    let isProcessing = false;
+
+    // Initialize geolocation
+    const geoLocation = new GeoLocation('locationInfo');
+    geoLocation.getCurrentLocation().then(coords => {
+        if (coords) {
+            currentLatitude = coords.latitude;
+            currentLongitude = coords.longitude;
+        }
+    });
+
+    // Employee selection
+    document.querySelectorAll('.employee-card').forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove previous selection
+            document.querySelectorAll('.employee-card').forEach(c => c.classList.remove('selected'));
+
+            // Select current card
+            this.classList.add('selected');
+            selectedEmployeeId = this.dataset.employeeId;
+            selectedEmployeeName = this.dataset.employeeName;
+
+            // Enable camera and attendance button
+            startCamera();
+            faceStatus.textContent = `Ready for ${selectedEmployeeName}`;
+            markAttendanceBtn.disabled = false;
+        });
+    });
+
+    // Start camera
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                faceStatus.textContent = 'Camera ready - Look at the camera';
+            })
+            .catch(error => {
+                console.error('Error accessing camera:', error);
+                faceStatus.textContent = 'Camera access denied';
+            });
+    }
+
+    // Mark attendance
+    markAttendanceBtn.addEventListener('click', function() {
+        if (!selectedEmployeeId || isProcessing) return;
+
+        isProcessing = true;
+        markAttendanceBtn.disabled = true;
+        markAttendanceBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+
+        // Capture current frame
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        // Get image data
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('employee_id', selectedEmployeeId);
+        formData.append('face_image_data', imageData);
+        formData.append('latitude', currentLatitude);
+        formData.append('longitude', currentLongitude);
+
+        // Send to server
+        fetch('/attendance/process', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showAttendanceResult(data);
+            resetForm();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAttendanceResult({ success: false, message: 'Network error occurred' });
+            resetForm();
+        });
+    });
+
+    function showAttendanceResult(result) {
+        const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));
+        const modalTitle = document.getElementById('attendanceModalTitle');
+        const modalBody = document.getElementById('attendanceModalBody');
+
+        if (result.success) {
+            modalTitle.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>Success';
+            modalBody.innerHTML = `
+                <div class="alert alert-success">
+                    <h6>Attendance Marked Successfully!</h6>
+                    <p class="mb-0">${result.message}</p>
+                    ${result.confidence ? `<small class="text-muted">Confidence: ${result.confidence}</small>` : ''}
+                </div>
+            `;
+        } else {
+            modalTitle.innerHTML = '<i class="fas fa-exclamation-circle text-danger me-2"></i>Failed';
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>Attendance Failed</h6>
+                    <p class="mb-0">${result.message}</p>
+                </div>
+            `;
+        }
+
+        modal.show();
+    }
+
+    function resetForm() {
+        isProcessing = false;
+        markAttendanceBtn.disabled = false;
+        markAttendanceBtn.innerHTML = '<i class="fas fa-check me-2"></i>Mark Attendance';
+
+        // Clear selection
+        document.querySelectorAll('.employee-card').forEach(c => c.classList.remove('selected'));
+        selectedEmployeeId = null;
+        selectedEmployeeName = null;
+
+        // Stop camera
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+
+        faceStatus.textContent = 'Select an employee first';
+        markAttendanceBtn.disabled = true;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Categories - Employee Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-list me-2"></i>Job Categories
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Categories List</h5>
+            </div>
+            <div class="card-body">
+                {% if categories %}
+                    <div class="row">
+                        {% for category in categories %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-folder me-2"></i>{{ category.name }}
+                                        </h6>
+                                        <p class="card-text text-muted">
+                                            <small>{{ category.job_titles|length }} job titles</small>
+                                        </p>
+                                        <a href="{{ url_for('job_titles', category_id=category.id) }}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>View Jobs
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-folder-open fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Categories Found</h4>
+                        <p class="text-muted">
+                            {% if current_user.role == 'superuser' %}
+                                Start by adding your first job category.
+                            {% else %}
+                                No categories have been assigned to you yet. Please contact your administrator.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    {% if current_user.role == 'superuser' %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>Add Category
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_category') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Category Name</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   placeholder="e.g., Engineering, Sales, Marketing" required>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i>Add Category
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="mt-3">
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Categories help organize job titles and can be assigned to specific supervisors for better access control.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

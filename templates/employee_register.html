@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Register Employee - Employee Attendance System{% endblock %}
+
+{% block extra_head %}
+<style>
+    #video-container {
+        position: relative;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    #video {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 2px solid var(--bs-border-color);
+    }
+    
+    #canvas {
+        display: none;
+    }
+    
+    .face-status {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        text-align: center;
+    }
+    
+    .capture-btn {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-user-plus me-2"></i>Register Employee
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Employee Information</h5>
+            </div>
+            <div class="card-body">
+                <form id="employeeForm" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employee_number" class="form-label">Employee Number *</label>
+                            <input type="text" class="form-control" id="employee_number" name="employee_number" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="category" class="form-label">Job Category *</label>
+                            <select class="form-select" id="category" required>
+                                <option value="">Select Category</option>
+                                {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="job_title_id" class="form-label">Job Title *</label>
+                            <select class="form-select" id="job_title_id" name="job_title_id" required>
+                                <option value="">Select Job Title</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="contact_number" class="form-label">Contact Number</label>
+                            <input type="tel" class="form-control" id="contact_number" name="contact_number">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="face_image_data" name="face_image_data">
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="fas fa-user-plus me-2"></i>Register Employee
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Face Capture *</h5>
+            </div>
+            <div class="card-body">
+                <div id="video-container">
+                    <video id="video" autoplay muted></video>
+                    <div class="face-status" id="faceStatus">Starting camera...</div>
+                </div>
+                
+                <canvas id="canvas"></canvas>
+                
+                <div class="text-center capture-btn">
+                    <button type="button" class="btn btn-success" id="captureBtn" disabled>
+                        <i class="fas fa-camera me-2"></i>Capture Face
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Instructions:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Look directly at the camera</li>
+                            <li>Ensure good lighting</li>
+                            <li>Keep your face centered</li>
+                            <li>Click "Capture Face" when ready</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/face_capture.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category');
+    const jobTitleSelect = document.getElementById('job_title_id');
+    
+    // Load job titles when category changes
+    categorySelect.addEventListener('change', function() {
+        const categoryId = this.value;
+        jobTitleSelect.innerHTML = '<option value="">Select Job Title</option>';
+        
+        if (categoryId) {
+            // In a real implementation, you'd fetch from an API
+            // For now, we'll populate based on the category
+            fetch(`/api/categories/${categoryId}/job-titles`)
+                .then(response => response.json())
+                .then(data => {
+                    data.job_titles.forEach(jobTitle => {
+                        const option = document.createElement('option');
+                        option.value = jobTitle.id;
+                        option.textContent = jobTitle.name;
+                        jobTitleSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading job titles:', error);
+                });
+        }
+    });
+    
+    // Initialize face capture
+    const faceCapture = new FaceCapture('video', 'canvas', 'faceStatus', 'captureBtn', 'face_image_data', 'submitBtn');
+    faceCapture.startCamera();
+});
+</script>
+{% endblock %}

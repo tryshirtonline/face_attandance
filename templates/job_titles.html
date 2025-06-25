@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Job Titles - {{ category.name }} - Employee Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('categories') }}">Categories</a>
+                </li>
+                <li class="breadcrumb-item active">{{ category.name }}</li>
+            </ol>
+        </nav>
+        
+        <h1 class="mb-4">
+            <i class="fas fa-briefcase me-2"></i>{{ category.name }} - Job Titles
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Job Titles</h5>
+            </div>
+            <div class="card-body">
+                {% if job_titles %}
+                    <div class="list-group">
+                        {% for job_title in job_titles %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ job_title.name }}</h6>
+                                    <small class="text-muted">
+                                        Created: {{ job_title.created_at.strftime('%Y-%m-%d') }}
+                                    </small>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">
+                                    {{ job_title.employees|length }} employees
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-briefcase fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Job Titles Found</h4>
+                        <p class="text-muted">Add your first job title for the {{ category.name }} category.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Add Job Title
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_job_title', category_id=category.id) }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Job Title Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="e.g., Software Engineer, Sales Manager" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Add Job Title
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Category:</strong> {{ category.name }}<br>
+                        <small>Job titles will be added under this category.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

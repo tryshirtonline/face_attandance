@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Employee Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-chart-bar me-2"></i>Attendance Reports
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Generate Report</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('generate_report') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        {% if current_user.role == 'superuser' and supervisors %}
+                            <div class="col-md-6 mb-3">
+                                <label for="supervisor_id" class="form-label">Supervisor</label>
+                                <select class="form-select" id="supervisor_id" name="supervisor_id">
+                                    <option value="">All Supervisors</option>
+                                    {% for supervisor in supervisors %}
+                                        <option value="{{ supervisor.id }}">{{ supervisor.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+                        
+                        {% if categories %}
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label">Category</label>
+                                <select class="form-select" id="category_id" name="category_id">
+                                    <option value="">All Categories</option>
+                                    {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="job_title_id" class="form-label">Job Title</label>
+                            <select class="form-select" id="job_title_id" name="job_title_id">
+                                <option value="">All Job Titles</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="report_type" class="form-label">Report Format</label>
+                            <select class="form-select" id="report_type" name="report_type" required>
+                                <option value="csv">CSV (Excel Compatible)</option>
+                                <option value="pdf">PDF Report</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download me-2"></i>Generate & Download Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Reports</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="generateQuickReport('today')">
+                        <i class="fas fa-calendar-day me-2"></i>Today's Report
+                    </button>
+                    
+                    <button type="button" class="btn btn-outline-success" onclick="generateQuickReport('this_week')">
+                        <i class="fas fa-calendar-week me-2"></i>This Week
+                    </button>
+                    
+                    <button type="button" class="btn btn-outline-info" onclick="generateQuickReport('this_month')">
+                        <i class="fas fa-calendar me-2"></i>This Month
+                    </button>
+                    
+                    <button type="button" class="btn btn-outline-warning" onclick="generateQuickReport('last_month')">
+                        <i class="fas fa-calendar-alt me-2"></i>Last Month
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Report Instructions</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Report Features:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li><strong>CSV:</strong> Excel-compatible spreadsheet</li>
+                        <li><strong>PDF:</strong> Professional formatted report</li>
+                        <li><strong>Filters:</strong> Date range, supervisor, category</li>
+                        <li><strong>Data:</strong> Employee details, timestamps, GPS coordinates</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning mt-2">
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>Note:</strong> Large date ranges may take longer to generate. Please be patient.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category_id');
+    const jobTitleSelect = document.getElementById('job_title_id');
+    
+    // Load job titles when category changes
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const categoryId = this.value;
+            jobTitleSelect.innerHTML = '<option value="">All Job Titles</option>';
+            
+            if (categoryId) {
+                // Load job titles for selected category
+                fetch(`/api/categories/${categoryId}/job-titles`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.job_titles) {
+                            data.job_titles.forEach(jobTitle => {
+                                const option = document.createElement('option');
+                                option.value = jobTitle.id;
+                                option.textContent = jobTitle.name;
+                                jobTitleSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading job titles:', error);
+                    });
+            }
+        });
+    }
+    
+    // Set default dates (last 7 days)
+    const today = new Date();
+    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    if (document.getElementById('start_date')) {
+        document.getElementById('start_date').value = lastWeek.toISOString().split('T')[0];
+    }
+    if (document.getElementById('end_date')) {
+        document.getElementById('end_date').value = today.toISOString().split('T')[0];
+    }
+});
+
+function generateQuickReport(period) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("generate_report") }}';
+    
+    const today = new Date();
+    let startDate, endDate;
+    
+    switch (period) {
+        case 'today':
+            startDate = endDate = today.toISOString().split('T')[0];
+            break;
+        case 'this_week':
+            const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+            startDate = startOfWeek.toISOString().split('T')[0];
+            endDate = new Date().toISOString().split('T')[0];
+            break;
+        case 'this_month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            endDate = new Date().toISOString().split('T')[0];
+            break;
+        case 'last_month':
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            startDate = lastMonth.toISOString().split('T')[0];
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0).toISOString().split('T')[0];
+            break;
+    }
+    
+    // Add form fields
+    const fields = {
+        'start_date': startDate,
+        'end_date': endDate,
+        'report_type': 'csv'
+    };
+    
+    for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+</script>
+{% endblock %}
