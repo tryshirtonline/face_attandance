@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from app import app, db
 from auth import auth_bp, role_required, superuser_required
 from api import api_bp
+from api_job_titles import api_job_titles_bp
 from models import (User, CompanyProfile, JobCategory, JobTitle, Supervisor, 
                    Employee, Attendance, supervisor_categories)
 from face_utils_working import face_processor
@@ -20,6 +21,7 @@ import io
 # Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(api_bp)
+app.register_blueprint(api_job_titles_bp)
 
 # Allowed file extensions for logo upload
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -799,17 +801,36 @@ def admin_add_employee():
         contact_number = request.form.get('contact_number', '').strip()
         email = request.form.get('email', '').strip()
         supervisor_id = request.form.get('supervisor_id')
+        face_data = request.form.get('face_data')
 
         # Validation
         if not all([employee_number, name, job_title_id, contact_number]):
             flash('Employee number, name, job title, and contact number are required.', 'error')
-            return redirect(url_for('admin_panel'))
+            return redirect(url_for('employees'))
+
+        if not face_data:
+            flash('Face capture is required for employee registration.', 'error')
+            return redirect(url_for('employees'))
 
         # Check if employee number already exists
         existing = Employee.query.filter_by(employee_number=employee_number).first()
         if existing:
             flash('Employee number already exists.', 'error')
-            return redirect(url_for('admin_panel'))
+            return redirect(url_for('employees'))
+
+        # Process face encoding
+        face_encoding = None
+        if face_data:
+            try:
+                from face_utils_working import face_processor
+                face_encoding = face_processor.extract_face_encoding(face_data)
+                if not face_encoding:
+                    flash('Failed to process face data. Please try capturing again.', 'error')
+                    return redirect(url_for('employees'))
+            except Exception as e:
+                logging.error(f"Error processing face encoding: {str(e)}")
+                flash('Error processing face data.', 'error')
+                return redirect(url_for('employees'))
 
         # Create employee
         employee = Employee(
@@ -822,17 +843,21 @@ def admin_add_employee():
             supervisor_id=int(supervisor_id) if supervisor_id else None
         )
 
+        # Set face encoding
+        if face_encoding:
+            employee.set_face_encoding(face_encoding)
+
         db.session.add(employee)
         db.session.commit()
 
-        flash(f'Employee "{name}" added successfully.', 'success')
+        flash(f'Employee "{name}" added successfully with face registration.', 'success')
 
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error adding employee: {str(e)}")
         flash('Error adding employee.', 'error')
 
-    return redirect(url_for('admin_panel'))
+    return redirect(url_for('employees'))
 
 @app.route('/admin/employees/edit', methods=['POST'])
 @superuser_required
