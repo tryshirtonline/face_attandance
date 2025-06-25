@@ -82,7 +82,7 @@ class FaceProcessor:
             logging.error(f"Error extracting face encoding: {e}")
             return None
 
-    def compare_faces(self, known_encoding, unknown_encoding, tolerance=0.5):
+    def compare_faces(self, known_encoding, unknown_encoding, tolerance=0.7):
         """Compare two face encodings - improved similarity calculation"""
         if not known_encoding or not unknown_encoding:
             return False
@@ -92,17 +92,38 @@ class FaceProcessor:
             if len(known_encoding) != len(unknown_encoding):
                 return False
             
-            # Calculate Euclidean distance
+            # Calculate multiple similarity metrics for better matching
             known = np.array(known_encoding)
             unknown = np.array(unknown_encoding)
             
-            distance = np.linalg.norm(known - unknown)
+            # 1. Cosine similarity (most reliable for face matching)
+            dot_product = np.dot(known, unknown)
+            norm_known = np.linalg.norm(known)
+            norm_unknown = np.linalg.norm(unknown)
             
-            # Normalize distance (typical face distances range from 0 to 1.2)
-            normalized_distance = distance / len(known_encoding) * 10
+            if norm_known == 0 or norm_unknown == 0:
+                return False
+                
+            cosine_similarity = dot_product / (norm_known * norm_unknown)
             
-            # More lenient threshold for better matching
-            return normalized_distance < tolerance
+            # 2. Euclidean distance (normalized)
+            euclidean_distance = np.linalg.norm(known - unknown)
+            normalized_distance = euclidean_distance / np.sqrt(len(known_encoding))
+            
+            # 3. Correlation coefficient
+            correlation = np.corrcoef(known, unknown)[0, 1]
+            if np.isnan(correlation):
+                correlation = 0
+            
+            # Combined scoring with weights
+            similarity_score = (
+                cosine_similarity * 0.5 +  # 50% weight to cosine similarity
+                (1 - normalized_distance) * 0.3 +  # 30% weight to normalized distance
+                abs(correlation) * 0.2  # 20% weight to correlation
+            )
+            
+            # Use more lenient threshold for better matching
+            return similarity_score > tolerance
             
         except Exception as e:
             logging.error(f"Error comparing faces: {e}")
@@ -126,8 +147,8 @@ class FaceProcessor:
             # Check blink detection for anti-spoofing
             blink_detected = self.detect_blink(None)
             
-            # Compare with known encoding using more lenient threshold
-            face_match = self.compare_faces(known_encoding, current_encoding, tolerance=0.6)
+            # Compare with known encoding using improved algorithm
+            face_match = self.compare_faces(known_encoding, current_encoding, tolerance=0.65)
             
             if face_match:
                 confidence = 0.85 + np.random.random() * 0.10  # Mock confidence 85-95%

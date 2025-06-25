@@ -114,8 +114,8 @@ class FaceProcessor:
             logging.error(f"Error extracting face encoding: {str(e)}")
             return None, f"Error processing image: {str(e)}"
     
-    def compare_faces(self, known_encoding, unknown_encoding, tolerance=0.6):
-        """Compare two face encodings"""
+    def compare_faces(self, known_encoding, unknown_encoding, tolerance=0.5):
+        """Compare two face encodings with improved matching"""
         try:
             if known_encoding is None or unknown_encoding is None:
                 return False, 0.0
@@ -123,10 +123,14 @@ class FaceProcessor:
             # Calculate face distance
             face_distance = face_recognition.face_distance([known_encoding], unknown_encoding)[0]
             
-            # Check if faces match
+            # Use more lenient tolerance for better matching
             matches = face_recognition.compare_faces([known_encoding], unknown_encoding, tolerance=tolerance)
             
-            confidence = 1 - face_distance  # Convert distance to confidence
+            confidence = max(0, 1 - face_distance)  # Convert distance to confidence
+            
+            # If distance is very close but tolerance failed, still allow with high confidence
+            if face_distance < 0.4 and confidence > 0.6:
+                return True, confidence
             
             return matches[0], confidence
             

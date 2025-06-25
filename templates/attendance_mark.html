@@ -291,12 +291,24 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         } else {
             modalTitle.innerHTML = '<i class="fas fa-exclamation-circle text-danger me-2"></i>Failed';
-            modalBody.innerHTML = `
+            let alertContent = `
                 <div class="alert alert-danger">
                     <h6>Attendance Failed</h6>
                     <p class="mb-0">${result.message}</p>
                 </div>
             `;
+            
+            // Add security alert if present
+            if (result.security_alert) {
+                alertContent += `
+                    <div class="alert alert-warning mt-2">
+                        <h6><i class="fas fa-shield-alt me-2"></i>Security Alert</h6>
+                        <p class="mb-0">${result.security_alert}</p>
+                    </div>
+                `;
+            }
+            
+            modalBody.innerHTML = alertContent;
         }
 
         modal.show();
