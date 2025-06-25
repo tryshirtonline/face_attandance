@@ -818,18 +818,46 @@ def admin_add_employee():
             flash('Employee number already exists.', 'error')
             return redirect(url_for('employees'))
 
-        # Process face encoding
+        # Process face encoding and save face image
         face_encoding = None
+        face_image_filename = None
         if face_data:
             try:
                 from face_utils_working import face_processor
+                import base64
+                from datetime import datetime
+                
+                # Extract face encoding
                 face_encoding = face_processor.extract_face_encoding(face_data)
                 if not face_encoding:
                     flash('Failed to process face data. Please ensure face is clearly visible and try capturing again.', 'error')
                     return redirect(url_for('employees'))
-                logging.info(f"Successfully processed face encoding for employee: {name}")
+                
+                # Save the captured face image
+                if ',' in face_data:
+                    # Remove data URL prefix
+                    image_data = face_data.split(',')[1]
+                else:
+                    image_data = face_data
+                
+                # Decode base64 image
+                image_bytes = base64.b64decode(image_data)
+                
+                # Generate unique filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                safe_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                safe_name = safe_name.replace(' ', '_').lower()
+                face_image_filename = f"{timestamp}_{safe_name}_face.jpg"
+                
+                # Save to uploads directory
+                upload_path = os.path.join('uploads', face_image_filename)
+                with open(upload_path, 'wb') as f:
+                    f.write(image_bytes)
+                
+                logging.info(f"Successfully processed face encoding and saved face image for employee: {name}")
+                
             except Exception as e:
-                logging.error(f"Error processing face encoding: {str(e)}")
+                logging.error(f"Error processing face data: {str(e)}")
                 flash('Error processing face data. Please try again.', 'error')
                 return redirect(url_for('employees'))
 
@@ -839,9 +867,10 @@ def admin_add_employee():
             name=name,
             job_title_id=int(job_title_id),
             address=address if address else None,
-            contact_number=contact_number,
+            contact_number=contact_number if contact_number else None,
             email=email if email else None,
-            supervisor_id=int(supervisor_id) if supervisor_id else None
+            supervisor_id=int(supervisor_id) if supervisor_id else None,
+            face_image_filename=face_image_filename
         )
 
         # Set face encoding
@@ -851,7 +880,10 @@ def admin_add_employee():
         db.session.add(employee)
         db.session.commit()
 
-        flash(f'Employee "{name}" added successfully with face registration.', 'success')
+        if face_image_filename:
+            flash(f'Employee "{name}" added successfully with face registration and image saved.', 'success')
+        else:
+            flash(f'Employee "{name}" added successfully.', 'success')
 
     except Exception as e:
         db.session.rollback()

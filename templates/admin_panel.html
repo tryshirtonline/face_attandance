@@ -133,6 +133,9 @@
                                     <td>
                                         {% if employee.face_encoding %}
                                             <span class="badge bg-success">Registered</span>
+                                            {% if employee.face_image_filename %}
+                                                <br><small class="text-muted">{{ employee.face_image_filename }}</small>
+                                            {% endif %}
                                         {% else %}
                                             <span class="badge bg-danger">Not Registered</span>
                                         {% endif %}

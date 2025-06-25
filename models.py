@@ -85,6 +85,7 @@ class Employee(db.Model):
     email = db.Column(db.String(120))
     supervisor_id = db.Column(db.Integer, db.ForeignKey('supervisors.id'))
     face_encoding = db.Column(LargeBinary)  # Store face encoding as binary data
+    face_image_filename = db.Column(db.String(255))  # Store face image filename
     created_at = db.Column(db.DateTime, default=get_current_datetime)
     is_active = db.Column(db.Boolean, default=True)
     

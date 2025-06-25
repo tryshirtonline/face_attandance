@@ -130,6 +130,10 @@ This is a Flask-based employee attendance management system with face recognitio
   - Face matching: Improved accuracy using cosine similarity, euclidean distance, and correlation
   - Security notifications: Real-time alerts for spoofing attempts and unauthorized access
   - Application fully operational with enhanced security features
+  - Face image saving: Captured face images now saved to uploads directory with timestamps
+  - Admin panel: Fixed template syntax errors and implemented data attribute approach
+  - Blink detection: Real video frame analysis for automatic face capture
+  - Dynamic job titles: Categories automatically populate job title dropdowns
 
 ## Changelog
 - June 25, 2025: Initial setup and debugging
