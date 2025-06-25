@@ -538,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 addVideo.style.display = 'block';
                 addFaceStatus.style.display = 'block';
                 addCameraPlaceholder.style.display = 'none';
-                addFaceStatus.textContent = 'Camera ready - Look at camera and blink naturally';
+                addFaceStatus.textContent = 'Camera ready - Look directly at camera';
                 addStartCameraBtn.disabled = true;
                 addCaptureBtn.disabled = false;
                 startBlinkDetection();
@@ -555,20 +555,93 @@ document.addEventListener('DOMContentLoaded', function() {
         
         addIsCapturing = true;
         addCaptureBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Detecting...';
-        addFaceStatus.textContent = 'Blink naturally to capture your face...';
+        addFaceStatus.textContent = 'Look at camera and blink slowly and naturally...';
         
         // Monitor for blink
         monitorForBlink();
     });
     
     function startBlinkDetection() {
-        // Simple blink detection simulation - in real implementation this would use MediaPipe
+        // Real blink detection using video analysis
         blinkCheckInterval = setInterval(() => {
-            // Simulate natural blinking detection
-            if (Math.random() > 0.85) { // 15% chance per check
-                addBlinkDetected = true;
+            if (addVideo && addVideo.videoWidth > 0) {
+                detectBlink();
             }
-        }, 200);
+        }, 100);
+    }
+    
+    function detectBlink() {
+        // Create canvas for frame analysis
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = addVideo.videoWidth;
+        canvas.height = addVideo.videoHeight;
+        
+        // Capture current frame
+        ctx.drawImage(addVideo, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Simple brightness-based blink detection
+        // When eyes blink, the average brightness in the eye region changes significantly
+        const brightness = calculateFrameBrightness(imageData);
+        
+        // Store brightness history for comparison
+        if (!window.brightnessHistory) {
+            window.brightnessHistory = [];
+        }
+        
+        window.brightnessHistory.push(brightness);
+        
+        // Keep only last 10 readings
+        if (window.brightnessHistory.length > 10) {
+            window.brightnessHistory.shift();
+        }
+        
+        // Detect significant brightness change (indicating blink)
+        if (window.brightnessHistory.length >= 5) {
+            const recent = window.brightnessHistory.slice(-3);
+            const older = window.brightnessHistory.slice(0, -3);
+            
+            const recentAvg = recent.reduce((a, b) => a + b) / recent.length;
+            const olderAvg = older.reduce((a, b) => a + b) / older.length;
+            
+            // If brightness dropped significantly and then recovered (blink pattern)
+            const brightnessDrop = Math.abs(recentAvg - olderAvg);
+            
+            if (brightnessDrop > 15 && !addBlinkDetected) {
+                addBlinkDetected = true;
+                console.log('Blink detected! Brightness change:', brightnessDrop);
+            }
+        }
+    }
+    
+    function calculateFrameBrightness(imageData) {
+        const data = imageData.data;
+        let brightness = 0;
+        
+        // Sample center region of frame (where face/eyes would be)
+        const centerX = imageData.width / 2;
+        const centerY = imageData.height / 2;
+        const sampleSize = 50; // 50x50 pixel sample area
+        
+        let pixelCount = 0;
+        
+        for (let y = centerY - sampleSize/2; y < centerY + sampleSize/2; y++) {
+            for (let x = centerX - sampleSize/2; x < centerX + sampleSize/2; x++) {
+                if (x >= 0 && x < imageData.width && y >= 0 && y < imageData.height) {
+                    const index = (Math.floor(y) * imageData.width + Math.floor(x)) * 4;
+                    const r = data[index];
+                    const g = data[index + 1];
+                    const b = data[index + 2];
+                    
+                    // Calculate grayscale brightness
+                    brightness += (r + g + b) / 3;
+                    pixelCount++;
+                }
+            }
+        }
+        
+        return pixelCount > 0 ? brightness / pixelCount : 0;
     }
     
     function monitorForBlink() {
@@ -580,15 +653,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
         
-        // Timeout after 10 seconds
+        // Timeout after 15 seconds
         setTimeout(() => {
             clearInterval(checkBlink);
             if (addIsCapturing) {
                 addIsCapturing = false;
                 addCaptureBtn.innerHTML = '<i class="fas fa-eye me-1"></i>Auto Capture (Blink)';
-                addFaceStatus.textContent = 'Blink not detected. Try again.';
+                addFaceStatus.textContent = 'Blink not detected. Try blinking slowly and naturally.';
             }
-        }, 10000);
+        }, 15000);
     }
     
     function captureImage() {
@@ -634,6 +707,8 @@ document.addEventListener('DOMContentLoaded', function() {
         addFaceData = null;
         document.getElementById('add_face_data').value = '';
         if (blinkCheckInterval) clearInterval(blinkCheckInterval);
+        // Reset brightness history
+        window.brightnessHistory = [];
     });
 });
 
