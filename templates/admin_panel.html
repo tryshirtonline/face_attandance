@@ -134,7 +134,12 @@
                                         {% if employee.face_encoding %}
                                             <span class="badge bg-success">Registered</span>
                                             {% if employee.face_image_filename %}
-                                                <br><small class="text-muted">{{ employee.face_image_filename }}</small>
+                                                <br><small class="text-muted">
+                                                    <a href="{{ url_for('uploaded_file', filename=employee.face_image_filename) }}" 
+                                                       target="_blank" class="text-decoration-none">
+                                                        {{ employee.face_image_filename }}
+                                                    </a>
+                                                </small>
                                             {% endif %}
                                         {% else %}
                                             <span class="badge bg-danger">Not Registered</span>

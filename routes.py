@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, date, timedelta
-from flask import render_template, request, redirect, url_for, flash, send_file, jsonify
+from flask import render_template, request, redirect, url_for, flash, send_file, jsonify, send_from_directory
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
@@ -982,6 +982,12 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 # Context processor to make company info available in all templates
+@app.route('/uploads/<filename>')
+@login_required
+def uploaded_file(filename):
+    """Serve uploaded files (face images, logos)"""
+    return send_from_directory('uploads', filename)
+
 @app.context_processor
 def inject_company_info():
     company = CompanyProfile.query.first()
