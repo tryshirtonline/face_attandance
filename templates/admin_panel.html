@@ -139,18 +139,26 @@
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-sm btn-outline-info" 
-                                                    onclick="viewEmployee({{ employee.id }})"
+                                            <button type="button" class="btn btn-sm btn-outline-info view-employee-btn" 
+                                                    data-employee-id="{{ employee.id }}"
                                                     data-bs-toggle="modal" data-bs-target="#viewEmployeeModal">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                    onclick="editEmployee({{ employee.id }}, '{{ employee.employee_number }}', '{{ employee.name }}', '{{ employee.job_title_id if employee.job_title_id else '' }}', '{{ (employee.address or '')|replace('\n', '\\n')|replace('\'', '\\'') }}', '{{ employee.contact_number or '' }}', '{{ employee.email or '' }}', {{ employee.supervisor_id or 'null' }})"
+                                            <button type="button" class="btn btn-sm btn-outline-primary edit-employee-btn" 
+                                                    data-employee-id="{{ employee.id }}"
+                                                    data-employee-number="{{ employee.employee_number }}"
+                                                    data-employee-name="{{ employee.name }}"
+                                                    data-job-title-id="{{ employee.job_title_id if employee.job_title_id else '' }}"
+                                                    data-employee-address="{{ employee.address if employee.address else '' }}"
+                                                    data-contact-number="{{ employee.contact_number if employee.contact_number else '' }}"
+                                                    data-employee-email="{{ employee.email if employee.email else '' }}"
+                                                    data-supervisor-id="{{ employee.supervisor_id if employee.supervisor_id else '' }}"
                                                     data-bs-toggle="modal" data-bs-target="#editEmployeeModal">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger"
-                                                    onclick="deleteEmployee({{ employee.id }}, '{{ employee.name }}')"
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-employee-btn"
+                                                    data-employee-id="{{ employee.id }}"
+                                                    data-employee-name="{{ employee.name }}"
                                                     data-bs-toggle="modal" data-bs-target="#deleteEmployeeModal">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -853,8 +861,9 @@ function loadJobTitles(prefix, selectedJobTitleId = null) {
     }
 }
 
-// Add custom CSS for avatar
+// Add event handlers for employee management
 document.addEventListener('DOMContentLoaded', function() {
+    // Add custom CSS for avatar
     const style = document.createElement('style');
     style.textContent = `
         .avatar-sm {
@@ -865,6 +874,61 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+    
+    // Event handlers for employee buttons using data attributes
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.view-employee-btn')) {
+            const btn = e.target.closest('.view-employee-btn');
+            const id = btn.dataset.employeeId;
+            viewEmployee(id);
+        }
+        
+        if (e.target.closest('.edit-employee-btn')) {
+            const btn = e.target.closest('.edit-employee-btn');
+            editEmployeeFromData(btn);
+        }
+        
+        if (e.target.closest('.delete-employee-btn')) {
+            const btn = e.target.closest('.delete-employee-btn');
+            deleteEmployeeFromData(btn);
+        }
+    });
 });
+
+function editEmployeeFromData(btn) {
+    document.getElementById('edit_employee_id').value = btn.dataset.employeeId;
+    document.getElementById('edit_employee_number').value = btn.dataset.employeeNumber;
+    document.getElementById('edit_employee_name').value = btn.dataset.employeeName;
+    document.getElementById('edit_address').value = btn.dataset.employeeAddress;
+    document.getElementById('edit_contact_number').value = btn.dataset.contactNumber;
+    document.getElementById('edit_email').value = btn.dataset.employeeEmail;
+    
+    // Set supervisor
+    const supervisorId = btn.dataset.supervisorId;
+    if (supervisorId && supervisorId !== '') {
+        document.getElementById('edit_supervisor_select').value = supervisorId;
+    } else {
+        document.getElementById('edit_supervisor_select').value = '';
+    }
+    
+    // Load job title after setting category
+    const jobTitleId = btn.dataset.jobTitleId;
+    if (jobTitleId && jobTitleId !== '') {
+        // First get the category for this job title
+        fetch(`/api/job-titles/${jobTitleId}/category`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('edit_category_select').value = data.category_id;
+                    loadJobTitles('edit', jobTitleId);
+                }
+            });
+    }
+}
+
+function deleteEmployeeFromData(btn) {
+    document.getElementById('delete_employee_id').value = btn.dataset.employeeId;
+    document.getElementById('delete_employee_name').textContent = btn.dataset.employeeName;
+}
 </script>
 {% endblock %}
