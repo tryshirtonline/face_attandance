@@ -859,7 +859,6 @@ def admin_edit_employee():
                 Employee.employee_number == employee_number,
                 Employee.id != employee.id
             )
-        ```python
         ).first()
 
         if existing:
