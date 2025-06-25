@@ -234,14 +234,109 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Mark attendance
+    // Mark attendance with 3-second countdown and blink detection
     markAttendanceBtn.addEventListener('click', function() {
         if (!selectedEmployeeId || isProcessing) return;
 
         isProcessing = true;
         markAttendanceBtn.disabled = true;
+        
+        // Start 3-second countdown
+        let countdown = 3;
+        markAttendanceBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Get Ready... ${countdown}`;
+        
+        const countdownInterval = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                markAttendanceBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Get Ready... ${countdown}`;
+            } else {
+                clearInterval(countdownInterval);
+                startBlinkDetection();
+            }
+        }, 1000);
+    });
+    
+    function startBlinkDetection() {
+        markAttendanceBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Detecting Blink...';
+        
+        let blinkDetected = false;
+        let brightnessHistory = [];
+        
+        const blinkInterval = setInterval(() => {
+            if (video && video.videoWidth > 0) {
+                const brightness = detectBlink();
+                brightnessHistory.push(brightness);
+                
+                // Keep only last 10 readings
+                if (brightnessHistory.length > 10) {
+                    brightnessHistory.shift();
+                }
+                
+                // Check for blink pattern
+                if (brightnessHistory.length >= 5) {
+                    const recent = brightnessHistory.slice(-3);
+                    const older = brightnessHistory.slice(0, -3);
+                    
+                    const recentAvg = recent.reduce((a, b) => a + b) / recent.length;
+                    const olderAvg = older.reduce((a, b) => a + b) / older.length;
+                    
+                    const brightnessDrop = Math.abs(recentAvg - olderAvg);
+                    
+                    if (brightnessDrop > 15 && !blinkDetected) {
+                        blinkDetected = true;
+                        clearInterval(blinkInterval);
+                        captureAndProcess(true);
+                    }
+                }
+            }
+        }, 100);
+        
+        // Timeout after 15 seconds
+        setTimeout(() => {
+            if (!blinkDetected) {
+                clearInterval(blinkInterval);
+                captureAndProcess(false);
+            }
+        }, 15000);
+    }
+    
+    function detectBlink() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        ctx.drawImage(video, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Calculate brightness in center region
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const sampleSize = 50;
+        
+        let brightness = 0;
+        let pixelCount = 0;
+        
+        for (let y = centerY - sampleSize/2; y < centerY + sampleSize/2; y++) {
+            for (let x = centerX - sampleSize/2; x < centerX + sampleSize/2; x++) {
+                if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                    const index = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
+                    const r = imageData.data[index];
+                    const g = imageData.data[index + 1];
+                    const b = imageData.data[index + 2];
+                    
+                    brightness += (r + g + b) / 3;
+                    pixelCount++;
+                }
+            }
+        }
+        
+        return pixelCount > 0 ? brightness / pixelCount : 0;
+    }
+    
+    function captureAndProcess(blinkDetected) {
         markAttendanceBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
-
+        
         // Capture current frame
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -257,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('face_image_data', imageData);
         formData.append('latitude', currentLatitude);
         formData.append('longitude', currentLongitude);
+        formData.append('blink_detected', blinkDetected ? 'true' : 'false');
 
         // Send to server
         fetch('/attendance/process', {
@@ -273,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showAttendanceResult({ success: false, message: 'Network error occurred' });
             resetForm();
         });
-    });
+    }
 
     function showAttendanceResult(result) {
         const modal = new bootstrap.Modal(document.getElementById('attendanceModal'));

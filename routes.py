@@ -358,6 +358,7 @@ def process_attendance():
         face_image_data = request.form.get('face_image_data')
         latitude = request.form.get('latitude')
         longitude = request.form.get('longitude')
+        blink_detected = request.form.get('blink_detected', 'false').lower() == 'true'
 
         if not all([employee_id, face_image_data]):
             return jsonify({'success': False, 'message': 'Missing required data'})
@@ -395,7 +396,7 @@ def process_attendance():
             return jsonify({'success': False, 'message': 'No face data found for this employee'})
 
         # Process face recognition with anti-spoofing
-        result = face_processor.process_attendance_frame(face_image_data, known_encoding)
+        result = face_processor.process_attendance_frame(face_image_data, known_encoding, blink_detected)
 
         # Log security alerts
         if result.get('security_alert'):

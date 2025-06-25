@@ -142,7 +142,7 @@ class FaceProcessor:
             logging.error(f"Error comparing faces: {e}")
             return False
 
-    def process_attendance_frame(self, image_data, known_encoding):
+    def process_attendance_frame(self, image_data, known_encoding, blink_detected=False):
         """Process frame for attendance marking with anti-spoofing"""
         try:
             # Extract face encoding from current frame
@@ -156,9 +156,6 @@ class FaceProcessor:
                     'confidence': 0.0,
                     'security_alert': 'Face detection failed - possible obstruction or poor lighting'
                 }
-            
-            # Check blink detection for anti-spoofing
-            blink_detected = self.detect_blink(None)
             
             # Compare with known encoding using improved algorithm
             face_match = self.compare_faces(known_encoding, current_encoding, tolerance=0.65)
@@ -177,7 +174,7 @@ class FaceProcessor:
                 else:
                     return {
                         'success': False,
-                        'message': 'Face matched but anti-spoofing verification failed. Please blink naturally.',
+                        'message': 'Face matched but no blink detected. Please blink naturally.',
                         'blink_detected': False,
                         'confidence': confidence,
                         'security_alert': 'SECURITY ALERT: No eye blink detected - possible photo/screen spoof attempt'
